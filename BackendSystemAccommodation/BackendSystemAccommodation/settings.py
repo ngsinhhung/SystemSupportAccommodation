@@ -9,6 +9,16 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+cloudinary.config(
+    cloud_name = "dmdljcwau",
+    api_key = "751729637915529",
+    api_secret = "-9greGmb76IjiPCDjePMEPuuz1I",
+    secure = True
+)
 
 from pathlib import Path
 
@@ -37,6 +47,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'RentApp.apps.RentappConfig',
+    'rest_framework',
+    'cloudinary',
+    'oauth2_provider',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -76,8 +91,11 @@ WSGI_APPLICATION = 'BackendSystemAccommodation.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ownertestdb',
+        'USER': 'root',
+        'PASSWORD': 'Sinhhung1212@',
+        'HOST': ''
     }
 }
 
@@ -122,3 +140,17 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTH_USER_MODEL = 'RentApp.User'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    )
+}
+
+OAUTH2_PROVIDER = {
+    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
+}
+
+
