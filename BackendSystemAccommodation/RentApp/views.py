@@ -1,10 +1,11 @@
 import cloudinary.uploader
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
-from RentApp.models import User
-from RentApp.serializers import UserSerializer
+from RentApp.models import User, Accommodation, HostPost, Image
+from RentApp.serializers import UserSerializer, HostPostSerializer, ImageSerializer, AccommodationSerializer
 
 
 # Create your views here.
@@ -65,17 +66,68 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
     def update_user(self, request, pk):
         try:
             data = request.data
-            user = self.get_object()
+            user_instance = User.objects.get(pk=pk)
+
             for key, value in data.items():
-                setattr(user, key, value)
+                setattr(user_instance, key, value)
             if data.get('avatar_user') is None:
                 pass
             else:
                 avatar_file = data.get('avatar_user')
                 res = cloudinary.uploader.upload(avatar_file, folder='avatar_user/')
-                user.avatar_user = res['secure_url']
-            user.save()
-            return Response(data=UserSerializer(user, context={'request': request}).data, status=status.HTTP_200_OK)
+                user_instance.avatar_user = res['secure_url']
+            user_instance.save()
+            return Response(data=UserSerializer(user_instance, context={'request': request}).data, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class HostPostViewSet(viewsets.ViewSet, generics.DestroyAPIView):
+    queryset = HostPost.objects.all()
+    serializer_class = HostPostSerializer
+    permission_classes = [permissions.AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
+    @action(methods=['POST'], detail=False, url_path='create')
+    def host_create_post(self, request):
+        try:
+            user = request.user
+            data = request.data
+            if user.role in ["HOST"]:
+                accommodation = Accommodation.objects.create(
+                    owner=request.user,
+                    address=data.get('address'),
+                    district=data.get('district'),
+                    city=data.get('city'),
+                    number_of_people=data.get('number_of_people'),
+                    latitude=data.get('latitude'),
+                    longitude=data.get('longitude')
+                )
+                print(accommodation)
+                hostpost_instance = HostPost.objects.create(
+                    content=data.get('content'),
+                    user_post=user,
+                    accommodation=accommodation
+                )
+                print(hostpost_instance)
+                image_instance = None
+                if len(request.FILES.getlist('image')) < 3:
+                    return Response({"Error": "You must at least THREE image"})
+                else:
+                    for file in request.FILES.getlist('image'):
+                        res = cloudinary.uploader.upload(file, folder='avatar_user/')
+                        image_url = res['secure_url']
+                        image_instance = Image.objects.create(
+                            image=image_url,
+                            host_post=hostpost_instance
+                        )
+                    return Response(data=HostPostSerializer(hostpost_instance, context={'request': request}).data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"Error": "User are not HOST"}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AccommodationViewSet(viewsets.ModelViewSet):
+    queryset = Accommodation.objects.all()
+    serializer_class = AccommodationSerializer
