@@ -35,7 +35,7 @@ class Accommodation(BaseModel):
     longitude = models.FloatField(null=True, blank=True)
     is_verified = models.BooleanField(default=False, choices=[(True, 'Verified'), (False, 'Not Verified')])
     is_rented = models.BooleanField(default=False, choices=[(True, 'Rented'), (False, 'Not Rent')])
-
+    host_post = models.OneToOneField('HostPost', on_delete=models.CASCADE)
     def __str__(self):
         return f'Accmmodation_{self.owner.username}'
 
@@ -58,7 +58,6 @@ class BasePostModel(BaseModel):
 
 class HostPost(BasePostModel):
     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_host_post')
-    accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name='accommodation_host_post')
     def __str__(self):
         return f'Post_host_{self.user_post.id}'
 

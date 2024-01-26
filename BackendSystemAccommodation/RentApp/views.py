@@ -14,6 +14,11 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
     serializer_class = UserSerializer
     permission_classes = [permissions.AllowAny,]
 
+    def get_permissions(self):
+        if self.action in ['detail_user', 'update_user']:
+            return [permissions.IsAuthenticated()]
+        return self.permission_classes
+
     @action(methods=['POST'], detail=False, url_path='register')
     def register_user(self, request):
         try:
@@ -82,17 +87,22 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class HostPostViewSet(viewsets.ViewSet, generics.DestroyAPIView):
+class HostPostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = HostPost.objects.all()
     serializer_class = HostPostSerializer
     permission_classes = [permissions.AllowAny]
     parser_classes = [MultiPartParser, FormParser]
+
     @action(methods=['POST'], detail=False, url_path='create')
     def host_create_post(self, request):
         try:
             user = request.user
             data = request.data
             if user.role in ["HOST"]:
+                hostpost_instance = HostPost.objects.create(
+                    content=data.get('content'),
+                    user_post=user,
+                )
                 accommodation = Accommodation.objects.create(
                     owner=request.user,
                     address=data.get('address'),
@@ -100,15 +110,9 @@ class HostPostViewSet(viewsets.ViewSet, generics.DestroyAPIView):
                     city=data.get('city'),
                     number_of_people=data.get('number_of_people'),
                     latitude=data.get('latitude'),
-                    longitude=data.get('longitude')
+                    longitude=data.get('longitude'),
+                    host_post=hostpost_instance
                 )
-                print(accommodation)
-                hostpost_instance = HostPost.objects.create(
-                    content=data.get('content'),
-                    user_post=user,
-                    accommodation=accommodation
-                )
-                print(hostpost_instance)
                 image_instance = None
                 if len(request.FILES.getlist('image')) < 3:
                     return Response({"Error": "You must at least THREE image"})

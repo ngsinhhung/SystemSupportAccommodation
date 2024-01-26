@@ -39,8 +39,6 @@ class AccommodationSerializer(ModelSerializer):
         fields = '__all__'
 
 class HostPostSerializer(ModelSerializer):
-
     class Meta:
         model = HostPost
         fields = '__all__'
-
