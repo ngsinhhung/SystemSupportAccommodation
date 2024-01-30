@@ -49,50 +49,70 @@ class Image(models.Model):
         return f'Image_of_{self.host_post_id}'
 
 
-class BasePostModel(BaseModel):
+class Post(BaseModel):
+    user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_post')
     content = models.TextField()
-
-    class Meta:
-        abstract = True
-
-class HostPost(BasePostModel):
-    user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_host_post')
-    is_verified = models.BooleanField(default=False, choices=[(True, 'Verified'), (False, 'Not Verified')])
+    district = models.CharField(max_length=255, null=True)
+    city = models.CharField(max_length=255, null=True)
+    number_of_people = models.PositiveSmallIntegerField()
+    cost = models.PositiveIntegerField()
 
     def __str__(self):
-        return f'Post_host_{self.user_post.id}'
+        return f'Post_user_{self.user_post.id}'
 
-class TenantPost(BasePostModel):
-    user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_tenant_post')
-    number_of_people = models.PositiveSmallIntegerField(default=1)
-    desire_cost = models.PositiveIntegerField()
-    district = models.CharField(max_length=255)
-    city = models.CharField(max_length=255)
-
-    def __str__(self):
-        return f'Tenant_host_{self.user_post.id}'
-
-class CommentBaseModel(BaseModel):
+class CommentPost(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_comment')
+    post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='post_comment')
     text = models.TextField()
-    parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, related_name='reply_comment', null=True,
-                                       blank=True)
-    class Meta:
-        abstract = True
-
-
-class CommentHostPost(CommentBaseModel):
-    user_comment = models.ForeignKey(User, on_delete=models.CASCADE, related_name='host_comment_post')
-    host_post = models.ForeignKey(HostPost, on_delete=models.CASCADE, related_name='host_post_comment')
+    parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, related_name='reply_comment', null=True, blank=True)
 
     def __str__(self):
-        return f'{self.user_comment}_comment_post_{self.host_post.id}'
+        return f'Comment_post_{self.post.id}'
 
-class CommentTenantPostModel(CommentBaseModel):
-    user_comment = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tenant_comment_post')
-    tenant_post = models.ForeignKey(TenantPost, on_delete=models.CASCADE, related_name='tenant_post_comment')
-
-    def __str__(self):
-        return f'{self.user_comment}_comment_post_{self.tenant_post.id}'
+# class BasePostModel(BaseModel):
+#     content = models.TextField()
+#
+#     class Meta:
+#         abstract = True
+#
+# class HostPost(BasePostModel):
+#     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_host_post')
+#     is_verified = models.BooleanField(default=False, choices=[(True, 'Verified'), (False, 'Not Verified')])
+#
+#     def __str__(self):
+#         return f'Post_host_{self.user_post.id}'
+#
+# class TenantPost(BasePostModel):
+#     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_tenant_post')
+#     number_of_people = models.PositiveSmallIntegerField(default=1)
+#     desire_cost = models.PositiveIntegerField()
+#     district = models.CharField(max_length=255)
+#     city = models.CharField(max_length=255)
+#
+#     def __str__(self):
+#         return f'Tenant_host_{self.user_post.id}'
+#
+# class CommentBaseModel(BaseModel):
+#     text = models.TextField()
+#     parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, related_name='reply_comment', null=True,
+#                                        blank=True)
+#     class Meta:
+#         abstract = True
+#
+#
+# class CommentHostPost(CommentBaseModel):
+#     user_comment = models.ForeignKey(User, on_delete=models.CASCADE, related_name='host_comment_post')
+#     host_post = models.ForeignKey(HostPost, on_delete=models.CASCADE, related_name='host_post_comment')
+#
+#     def __str__(self):
+#         return f'{self.user_comment}_comment_post_{self.host_post.id}'
+#
+# class CommentTenantPostModel(CommentBaseModel):
+#     user_comment = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tenant_comment_post')
+#     tenant_post = models.ForeignKey(TenantPost, on_delete=models.CASCADE, related_name='tenant_post_comment')
+#
+#     def __str__(self):
+#         return f'{self.user_comment}_comment_post_{self.tenant_post.id}'
 
 class Notification(models.Model):
     user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='notifications')
