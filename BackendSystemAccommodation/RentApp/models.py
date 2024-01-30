@@ -30,7 +30,8 @@ class Accommodation(BaseModel):
     address = models.CharField(max_length=255)
     district = models.CharField(max_length=255)
     city = models.CharField(max_length=255)
-    number_of_people = models.IntegerField()
+    number_of_people = models.PositiveSmallIntegerField(default=1)
+    rent_cost = models.PositiveIntegerField()
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     is_verified = models.BooleanField(default=False, choices=[(True, 'Verified'), (False, 'Not Verified')])
@@ -41,7 +42,6 @@ class Accommodation(BaseModel):
 
 class Image(models.Model):
     image = CloudinaryField('image', null=True, blank=True)
-    # accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name='image_accommodation')
     host_post = models.ForeignKey('HostPost', on_delete=models.CASCADE, related_name="host_post_image")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -51,19 +51,23 @@ class Image(models.Model):
 
 class BasePostModel(BaseModel):
     content = models.TextField()
-    is_active = models.BooleanField(default=False)
 
     class Meta:
         abstract = True
 
 class HostPost(BasePostModel):
     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_host_post')
+    is_verified = models.BooleanField(default=False, choices=[(True, 'Verified'), (False, 'Not Verified')])
+
     def __str__(self):
         return f'Post_host_{self.user_post.id}'
 
 class TenantPost(BasePostModel):
     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_tenant_post')
-    address = models.CharField(max_length=255)
+    number_of_people = models.PositiveSmallIntegerField(default=1)
+    desire_cost = models.PositiveIntegerField()
+    district = models.CharField(max_length=255)
+    city = models.CharField(max_length=255)
 
     def __str__(self):
         return f'Tenant_host_{self.user_post.id}'

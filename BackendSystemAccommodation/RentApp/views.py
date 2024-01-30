@@ -4,20 +4,21 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
-from RentApp.models import User, Accommodation, HostPost, Image
-from RentApp.serializers import UserSerializer, HostPostSerializer, ImageSerializer, AccommodationSerializer
+from RentApp.models import User, Accommodation, HostPost, Image, TenantPost
+from RentApp.serializers import UserSerializer, HostPostSerializer, ImageSerializer, AccommodationSerializer, \
+    TenantPostSerializer
 
 
 # Create your views here.
 class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny,]
+    permission_classes = [permissions.AllowAny, ]
 
-    def get_permissions(self):
-        if self.action in ['detail_user', 'update_user']:
-            return [permissions.IsAuthenticated()]
-        return self.permission_classes
+    # def get_permissions(self):
+    #     if self.action in ['detail_user', 'update_user']:
+    #         return [permissions.IsAuthenticated()]
+    #     return self.permission_classes
 
     @action(methods=['POST'], detail=False, url_path='register')
     def register_user(self, request):
@@ -94,7 +95,7 @@ class HostPostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAP
     parser_classes = [MultiPartParser, FormParser]
 
     @action(methods=['POST'], detail=False, url_path='create')
-    def host_create_post(self, request):
+    def create_host_post(self, request):
         try:
             user = request.user
             data = request.data
@@ -109,6 +110,7 @@ class HostPostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAP
                     district=data.get('district'),
                     city=data.get('city'),
                     number_of_people=data.get('number_of_people'),
+                    rent_cost=data.get('rent_cost'),
                     latitude=data.get('latitude'),
                     longitude=data.get('longitude'),
                     host_post=hostpost_instance
@@ -118,7 +120,7 @@ class HostPostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAP
                     return Response({"Error": "You must at least THREE image"})
                 else:
                     for file in request.FILES.getlist('image'):
-                        res = cloudinary.uploader.upload(file, folder='avatar_user/')
+                        res = cloudinary.uploader.upload(file, folder='post_image/')
                         image_url = res['secure_url']
                         image_instance = Image.objects.create(
                             image=image_url,
@@ -132,6 +134,35 @@ class HostPostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAP
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class AccommodationViewSet(viewsets.ModelViewSet):
+class TenantPostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
+    queryset = TenantPost.objects.all()
+    serializer_class = TenantPostSerializer
+    permission_classes = [permissions.AllowAny,]
+    @action(methods=['POST'], detail=False, url_path='create')
+    def create_tenant_post(self, request):
+        try:
+            data = request.data
+            user = request.user
+            if user.role in ['TENANT']:
+
+                return Response(data=TenantPostSerializer(
+                    TenantPost.objects.create(
+                        user_post=user,
+                        number_of_people=data.get('number_of_people'),
+                        content=data.get('content'),
+                        desire_cost=data.get('desire_cost'),
+                        district=data.get('district'),
+                        city=data.get('city')
+                    )
+                ).data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({'Error': 'User are not TENANT'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
+
