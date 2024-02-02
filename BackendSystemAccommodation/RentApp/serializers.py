@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
+from rest_framework_recursive.fields import RecursiveField
 
 from RentApp.models import User, Accommodation, Image, Post, CommentPost
 
@@ -22,27 +23,20 @@ class UserSerializer(ModelSerializer):
         extra_kwargs = {
             'password': {'write_only': True},
         }
-
     def create(self, validated_data):
         data = validated_data.copy()
         user = User(**data)
         user.set_password(user.password)
         user.save()
         return user
-
-
 class ImageSerializer(ModelSerializer):
     class Meta:
         model = Image
         fields = ['image', 'host_post']
-
-
 class AccommodationSerializer(ModelSerializer):
     class Meta:
         model = Accommodation
         fields = '__all__'
-
-
 
 class PostSerializer(ModelSerializer):
     class Meta:
@@ -52,6 +46,7 @@ class PostSerializer(ModelSerializer):
 
 
 class CommentPostSerializer(ModelSerializer):
+    reply_comment = RecursiveField(many=True)
     class Meta:
         model = CommentPost
-        fields = '__all__'
+        fields = ['id', 'user_comment', 'post', 'text', 'parent_comment', 'reply_comment']

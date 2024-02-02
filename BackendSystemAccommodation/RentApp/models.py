@@ -48,7 +48,6 @@ class Image(models.Model):
     def __str__(self):
         return f'Image_of_{self.host_post_id}'
 
-
 class Post(BaseModel):
     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_post')
     content = models.TextField()

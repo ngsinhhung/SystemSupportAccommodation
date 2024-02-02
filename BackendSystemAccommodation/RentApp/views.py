@@ -55,7 +55,8 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
                 role=role,
                 avatar_user=res['secure_url'],
             )
-            return Response(data=UserSerializer(new_user, context={'request': request}).data, status=status.HTTP_201_CREATED)
+            return Response(data=UserSerializer(new_user, context={'request': request}).data,
+                            status=status.HTTP_201_CREATED)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({'error': 'Error creating user'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -64,10 +65,12 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
     def detail_user(self, request, pk):
         try:
             current_user = User.objects.get(pk=pk)
-            return Response(data=UserSerializer(current_user,context={'request': request}).data,status=status.HTTP_200_OK)
+            return Response(data=UserSerializer(current_user, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(methods=['PATCH'], detail=True, url_path='update')
     def update_user(self, request, pk):
         try:
@@ -83,10 +86,12 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
                 res = cloudinary.uploader.upload(avatar_file, folder='avatar_user/')
                 user_instance.avatar_user = res['secure_url']
             user_instance.save()
-            return Response(data=UserSerializer(user_instance, context={'request': request}).data, status=status.HTTP_200_OK)
+            return Response(data=UserSerializer(user_instance, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = Post.objects.all()
@@ -131,7 +136,8 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
                             image=image_url,
                             post=post_instance
                         )
-                    return Response(data=PostSerializer(post_instance, context={'request': request}).data, status=status.HTTP_201_CREATED)
+                    return Response(data=PostSerializer(post_instance, context={'request': request}).data,
+                                    status=status.HTTP_201_CREATED)
             elif user.role in ["TENANT"]:
                 return Response(data=PostSerializer(
                     Post.objects.create(
@@ -167,8 +173,8 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class CommentPostViewSet(viewsets.ViewSet, generics.DestroyAPIView):
-    queryset = CommentPost.objects.all()
+class CommentPostViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = CommentPost.objects.filter(parent_comment__isnull=True)
     serializer_class = CommentPostSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -189,8 +195,16 @@ class CommentPostViewSet(viewsets.ViewSet, generics.DestroyAPIView):
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(methods=['DELETE'], detail=True, url_path='delete')
+    def delete_comment(self, request, pk):
+        try:
+            CommentPost.objects.get(pk=pk).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
-
