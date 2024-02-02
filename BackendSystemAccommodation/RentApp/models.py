@@ -1,4 +1,4 @@
-from cloudinary.models import CloudinaryField
+﻿from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -64,9 +64,9 @@ class Post(BaseModel):
 
 class CommentPost(BaseModel):
     user_comment = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_comment')
-    post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='post_comment')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_comment', unique=False)
     text = models.TextField()
-    parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, related_name='reply_comment', null=True, blank=True)
+    parent_comment = models.ForeignKey('CommentPost', on_delete=models.CASCADE, related_name='reply_comment', null=True, blank=True)
 
     def __str__(self):
         return f'Comment_post_{self.post.id}'

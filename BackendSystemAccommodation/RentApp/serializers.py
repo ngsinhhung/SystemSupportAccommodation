@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
 
-from RentApp.models import User, Accommodation, Image, Post
+from RentApp.models import User, Accommodation, Image, Post, CommentPost
 
 
 class UserSerializer(ModelSerializer):
@@ -30,22 +30,28 @@ class UserSerializer(ModelSerializer):
         user.save()
         return user
 
+
 class ImageSerializer(ModelSerializer):
     class Meta:
         model = Image
         fields = ['image', 'host_post']
+
 
 class AccommodationSerializer(ModelSerializer):
     class Meta:
         model = Accommodation
         fields = '__all__'
 
-class HostPostSerializer(ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['id', 'user_post', 'content', 'is_approved']
 
-class TennantPostSerializer(ModelSerializer):
+
+class PostSerializer(ModelSerializer):
     class Meta:
         model = Post
-        fields = ['id', 'user_post', 'content', 'district', 'city', 'number_of_people', 'cost', 'is_approved']
+        fields = ['id', 'user_post', 'content', 'district', 'city', 'number_of_people', 'cost', 'is_host_post',
+                  'is_approved']
+
+
+class CommentPostSerializer(ModelSerializer):
+    class Meta:
+        model = CommentPost
+        fields = '__all__'

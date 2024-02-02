@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from RentApp.models import User, Accommodation, Image, Post, CommentPost
 from RentApp.serializers import UserSerializer, ImageSerializer, AccommodationSerializer, \
-    HostPostSerializer, TennantPostSerializer
+    CommentPostSerializer, PostSerializer
 
 
 # Create your views here.
@@ -90,7 +90,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
 
 class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = Post.objects.all()
-    serializer_class = HostPostSerializer
+    serializer_class = PostSerializer
     permission_classes = [permissions.AllowAny]
     parser_classes = [MultiPartParser, FormParser]
 
@@ -103,6 +103,10 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
                 post_instance = Post.objects.create(
                     content=data.get('content'),
                     user_post=user,
+                    district=data.get('district'),
+                    city=data.get('city'),
+                    number_of_people=data.get('number_of_people'),
+                    cost=data.get('rent_cost'),
                     is_host_post=True
                 )
                 accommodation = Accommodation.objects.create(
@@ -127,14 +131,14 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
                             image=image_url,
                             post=post_instance
                         )
-                    return Response(data=HostPostSerializer(post_instance, context={'request': request}).data, status=status.HTTP_201_CREATED)
+                    return Response(data=PostSerializer(post_instance, context={'request': request}).data, status=status.HTTP_201_CREATED)
             elif user.role in ["TENANT"]:
-                return Response(data=TennantPostSerializer(
+                return Response(data=PostSerializer(
                     Post.objects.create(
                         user_post=user,
                         district=data.get('district'),
                         content=data.get('content'),
-                        cost=data.get('desire_cost'),
+                        cost=data.get('cost'),
                         city=data.get('city'),
                         number_of_people=data.get('number_of_people'),
                         is_host_post=False
@@ -146,6 +150,44 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(methods=['POST'], detail=True, url_path='comment')
+    def add_comment_post(self, request, pk):
+        try:
+            data = request.data
+            user = request.user
+            return Response(data=CommentPostSerializer(
+                CommentPost.objects.create(
+                    user_comment=user,
+                    post=self.get_object(),
+                    text=data.get('text'),
+                )
+            ).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CommentPostViewSet(viewsets.ViewSet, generics.DestroyAPIView):
+    queryset = CommentPost.objects.all()
+    serializer_class = CommentPostSerializer
+    permission_classes = [permissions.AllowAny]
+
+    @action(methods=['POST'], detail=True, url_path='reply')
+    def add_reply_comment(self, request, pk):
+        try:
+            post_instance = Post.objects.get(pk=CommentPost.objects.get(pk=pk).post_id)
+            parent_comment = CommentPost.objects.get(pk=pk)
+            return Response(data=CommentPostSerializer(
+                CommentPost.objects.create(
+                    user_comment=request.user,
+                    post=post_instance,
+                    text=request.data.get('text'),
+                    parent_comment=parent_comment
+                )
+            ).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView):
