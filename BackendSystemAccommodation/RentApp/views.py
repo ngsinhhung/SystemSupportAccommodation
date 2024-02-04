@@ -92,6 +92,10 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    # @action(methods=['GET'], detail=True, url_path='follow')
+    # def follow(self, request, pk):
+        
+
 
 class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = Post.objects.all()

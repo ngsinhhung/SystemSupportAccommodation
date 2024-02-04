@@ -3,7 +3,7 @@ from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
 from rest_framework_recursive.fields import RecursiveField
 
-from RentApp.models import User, Accommodation, Image, Post, CommentPost
+from RentApp.models import User, Accommodation, Image, Post, CommentPost, Follow
 
 
 class UserSerializer(ModelSerializer):
@@ -23,12 +23,19 @@ class UserSerializer(ModelSerializer):
         extra_kwargs = {
             'password': {'write_only': True},
         }
+
     def create(self, validated_data):
         data = validated_data.copy()
         user = User(**data)
         user.set_password(user.password)
         user.save()
         return user
+
+class FollowSerializer(ModelSerializer):
+    class Meta:
+        model = Follow
+        fields = '__all__'
+
 class ImageSerializer(ModelSerializer):
     class Meta:
         model = Image
