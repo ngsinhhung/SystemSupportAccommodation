@@ -22,8 +22,8 @@ class User(AbstractUser):
         return self.username
 
 class Follow(models.Model):
-    follower = models.ForeignKey('User', on_delete=models.CASCADE, related_name='follower')
-    following = models.ForeignKey('User', on_delete=models.CASCADE, related_name='following')
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='follower')
+    follow = models.ForeignKey('User', on_delete=models.CASCADE, related_name='following')
 
 class Accommodation(BaseModel):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='accommodation')
@@ -46,7 +46,7 @@ class Image(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'Image_of_{self.host_post_id}'
+        return f'Image_of_{self.post_id}'
 
 class Post(BaseModel):
     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_post')

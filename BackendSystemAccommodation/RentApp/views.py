@@ -4,9 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
-from RentApp.models import User, Accommodation, Image, Post, CommentPost
+from RentApp.models import User, Accommodation, Image, Post, CommentPost, Follow
 from RentApp.serializers import UserSerializer, ImageSerializer, AccommodationSerializer, \
-    CommentPostSerializer, PostSerializer
+    CommentPostSerializer, PostSerializer, FollowSerializer
 
 
 # Create your views here.
@@ -92,9 +92,26 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # @action(methods=['GET'], detail=True, url_path='follow')
-    # def follow(self, request, pk):
-        
+    @action(methods=['GET'], url_path='current_user', url_name='current_user', detail=False)
+    def current_user(self, request):
+        return Response(UserSerializer(request.user).data)
+
+    @action(methods=['POST'], detail=False, url_path='follow')
+    def follow(self, request):
+        try:
+            queries = self.queryset
+            user_id = request.query_params.get('user_id')
+            user_follow = queries.get(pk=user_id)
+            user = request.user
+            follow, followed = Follow.objects.get_or_create(user=user, follow=user_follow)
+            if not followed:
+                follow.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(data=FollowSerializer(follow).data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
