@@ -108,10 +108,46 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
                 follow.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(data=FollowSerializer(follow).data, status=status.HTTP_201_CREATED)
-
         except Exception as e:
             print(f"Error: {str(e)}")
-            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"Error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=False, url_path='follower')
+    def follower(self, request):
+        try:
+            user = request.user
+            userid = User.objects.get(username=user).id
+            followers = Follow.objects.filter(follow_id=userid)
+            follower_array = []
+            for follower in followers:
+                follower_array.append(follower.user_id)
+            dataUser = {
+                'user': str(user),
+                'followers': follower_array
+            }
+            return Response(dataUser, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=False, url_path='following')
+    def following(self, request):
+        try:
+            user = request.user
+            userid = User.objects.get(username=user).id
+            following_user = Follow.objects.filter(user_id=userid)
+            following_array = []
+            for follower in following_user:
+                following_array.append(follower.follow_id)
+            dataUser = {
+                'user': str(userid),
+                'following': following_array
+            }
+            return Response(dataUser, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
