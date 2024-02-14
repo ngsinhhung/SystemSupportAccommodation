@@ -61,21 +61,23 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({'error': 'Error creating user'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['GET'], detail=True, url_path='detail')
-    def detail_user(self, request, pk):
+    @action(methods=['GET'], detail=False, url_path='detail')
+    def detail_user(self, request):
         try:
-            current_user = User.objects.get(pk=pk)
-            return Response(data=UserSerializer(current_user, context={'request': request}).data,
-                            status=status.HTTP_200_OK)
+            current_user = User.objects.get(username=request.user)
+            data = UserSerializer(current_user, context={'request': request}).data
+            data['followers'] = Follow.objects.filter(follow_id=current_user.id).count()
+            data['following'] = Follow.objects.filter(user_id=current_user.id).count()
+            return Response(data=data, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['PATCH'], detail=True, url_path='update')
-    def update_user(self, request, pk):
+    @action(methods=['PATCH'], detail=False, url_path='update')
+    def update_user(self, request):
         try:
             data = request.data
-            user_instance = User.objects.get(pk=pk)
+            user_instance = User.objects.get(username=request.user)
 
             for key, value in data.items():
                 setattr(user_instance, key, value)
