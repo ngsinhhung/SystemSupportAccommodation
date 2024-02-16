@@ -25,6 +25,7 @@ class Follow(models.Model):
     user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='follower')
     follow = models.ForeignKey('User', on_delete=models.CASCADE, related_name='following')
 
+
 class Accommodation(BaseModel):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='accommodation')
     address = models.CharField(max_length=255)
@@ -36,26 +37,20 @@ class Accommodation(BaseModel):
     longitude = models.FloatField(null=True, blank=True)
     is_verified = models.BooleanField(default=False, choices=[(True, 'Verified'), (False, 'Not Verified')])
     is_rented = models.BooleanField(default=False, choices=[(True, 'Rented'), (False, 'Not Rent')])
-    post = models.OneToOneField('Post', on_delete=models.CASCADE)
     def __str__(self):
         return f'Accommodation_{self.owner.username}'
 
 class Image(models.Model):
     image = CloudinaryField('image', null=True, blank=True)
-    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name="host_post_image")
+    accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name="accommodation_image")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'Image_of_{self.post_id}'
+        return f'Image_of_{self.accommodation_id}'
 
 class Post(BaseModel):
     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_post')
     content = models.TextField()
-    district = models.CharField(max_length=255, null=True)
-    city = models.CharField(max_length=255, null=True)
-    number_of_people = models.PositiveSmallIntegerField(null=True)
-    cost = models.PositiveIntegerField(null=True)
-    is_host_post = models.BooleanField()
     is_approved = models.BooleanField(default=False, choices=[(True, 'Approved'), (False, 'Not Approved')])
 
     def __str__(self):

@@ -151,7 +151,6 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             return Response({"Error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
 class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
@@ -163,57 +162,18 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
         try:
             user = request.user
             data = request.data
-            if user.role in ["HOST"]:
-                post_instance = Post.objects.create(
-                    content=data.get('content'),
-                    user_post=user,
-                    district=data.get('district'),
-                    city=data.get('city'),
-                    number_of_people=data.get('number_of_people'),
-                    cost=data.get('rent_cost'),
-                    is_host_post=True
-                )
-                accommodation = Accommodation.objects.create(
-                    owner=request.user,
-                    address=data.get('address'),
-                    district=data.get('district'),
-                    city=data.get('city'),
-                    number_of_people=data.get('number_of_people'),
-                    rent_cost=data.get('rent_cost'),
-                    latitude=data.get('latitude'),
-                    longitude=data.get('longitude'),
-                    post=post_instance
-                )
-                image_instance = None
-                if len(request.FILES.getlist('image')) < 3:
-                    return Response({"Error": "You must upload at least THREE image"})
-                else:
-                    for file in request.FILES.getlist('image'):
-                        res = cloudinary.uploader.upload(file, folder='post_image/')
-                        image_url = res['secure_url']
-                        image_instance = Image.objects.create(
-                            image=image_url,
-                            post=post_instance
-                        )
-                    return Response(data=PostSerializer(post_instance, context={'request': request}).data,
-                                    status=status.HTTP_201_CREATED)
-            elif user.role in ["TENANT"]:
-                return Response(data=PostSerializer(
-                    Post.objects.create(
-                        user_post=user,
-                        district=data.get('district'),
-                        content=data.get('content'),
-                        cost=data.get('cost'),
-                        city=data.get('city'),
-                        number_of_people=data.get('number_of_people'),
-                        is_host_post=False
-                    )
-                ).data, status=status.HTTP_201_CREATED)
-            else:
-                return Response({"Error": "User deny permission"}, status=status.HTTP_403_FORBIDDEN)
+            post_instance = Post.objects.create(
+                content=data.get('content'),
+                user_post=user,
+            )
+            return Response(data=PostSerializer(post_instance).data, status=status.HTTP_201_CREATED)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail='True', url_path='detail')
+    def detail_post(self, request, pk):
+        pass
 
     @action(methods=['POST'], detail=True, url_path='comment')
     def add_comment_post(self, request, pk):
@@ -264,6 +224,56 @@ class CommentPostViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView):
+class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
+    permission_classes = [permissions.AllowAny, ]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @action(methods=['POST'], detail=False, url_path='create')
+    def create_accommodation(self, request):
+        try:
+            user = request.user
+            data = request.data
+            if user.role in ['HOST']:
+                if len(request.FILES.getlist('image')) < 3:
+                    return Response({"Error": "You must upload at least THREE image"})
+                accommodation = Accommodation.objects.create(
+                    owner=user,
+                    address=data.get('address'),
+                    district=data.get('district'),
+                    city=data.get('city'),
+                    number_of_people=data.get('number_of_people'),
+                    rent_cost=data.get('rent_cost'),
+                    latitude=data.get('latitude'),
+                    longitude=data.get('longitude'),
+                )
+                image_instance = None
+                for file in request.FILES.getlist('image'):
+                    res = cloudinary.uploader.upload(file, folder='post_image/')
+                    image_url = res['secure_url']
+                    image_instance = Image.objects.create(
+                        image=image_url,
+                        accommodation=accommodation
+                    )
+                return Response(data=AccommodationSerializer(accommodation, context={'request': request}).data,
+                                status=status.HTTP_201_CREATED)
+            else:
+                return Response({'Error': 'You must be HOST'}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=True, url_path='detail')
+    def detail_accommodation(self, request, pk):
+        try:
+            accommodation = AccommodationSerializer(Accommodation.objects.get(pk=pk)).data
+            image_accommodation = Image.objects.filter(accommodation=pk)
+            images = []
+            for image in image_accommodation:
+                images.append(str(image.image))
+            accommodation['images'] = images
+            return Response(data=accommodation, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

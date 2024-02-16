@@ -39,7 +39,7 @@ class FollowSerializer(ModelSerializer):
 class ImageSerializer(ModelSerializer):
     class Meta:
         model = Image
-        fields = ['image', 'host_post']
+        fields = ['image', 'accommodation']
 class AccommodationSerializer(ModelSerializer):
     class Meta:
         model = Accommodation
@@ -48,8 +48,7 @@ class AccommodationSerializer(ModelSerializer):
 class PostSerializer(ModelSerializer):
     class Meta:
         model = Post
-        fields = ['id', 'user_post', 'content', 'district', 'city', 'number_of_people', 'cost', 'is_host_post',
-                  'is_approved']
+        fields = ['id', 'user_post', 'content', 'is_approved']
 
 
 class CommentPostSerializer(ModelSerializer):
