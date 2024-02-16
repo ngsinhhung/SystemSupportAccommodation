@@ -171,10 +171,6 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['GET'], detail='True', url_path='detail')
-    def detail_post(self, request, pk):
-        pass
-
     @action(methods=['POST'], detail=True, url_path='comment')
     def add_comment_post(self, request, pk):
         try:
@@ -187,6 +183,16 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
                     text=data.get('text'),
                 )
             ).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=True, url_path='comments')
+    def get_comments(self, request, pk):
+        try:
+            post = self.get_object()
+            comments = CommentPost.objects.filter(post_id=post.id)
+            return Response(data=CommentPostSerializer(comments, many=True).data, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -210,6 +216,22 @@ class CommentPostViewSet(viewsets.ViewSet, generics.ListAPIView):
                     parent_comment=parent_comment
                 )
             ).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['PATCH', 'PUT'], detail=True, url_path='edit')
+    def edit_comment(self, request, pk):
+        try:
+            data = request.data
+            userid = User.objects.get(username=request.user).id
+            comment = CommentPost.objects.get(pk=pk)
+            if comment.user_comment_id == userid:
+                comment.text = data.get('text')
+                comment.save()
+                return Response(data=CommentPostSerializer(comment).data, status=status.HTTP_200_OK)
+            else:
+                return Response({"Error": "You not owner"}, status=status.HTTP_403_FORBIDDEN)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
