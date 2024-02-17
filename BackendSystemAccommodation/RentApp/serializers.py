@@ -3,7 +3,7 @@ from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
 from rest_framework_recursive.fields import RecursiveField
 
-from RentApp.models import User, Accommodation, Image, Post, CommentPost, Follow
+from RentApp.models import User, Accommodation, Image, Post, CommentPost, Follow, Notification
 
 
 class UserSerializer(ModelSerializer):
@@ -56,3 +56,8 @@ class CommentPostSerializer(ModelSerializer):
     class Meta:
         model = CommentPost
         fields = ['id', 'user_comment', 'post', 'text', 'parent_comment', 'reply_comment']
+
+class NotificationSerializer(ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = '__all__'

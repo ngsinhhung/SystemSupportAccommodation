@@ -1,12 +1,16 @@
 import cloudinary.uploader
+from django.conf import settings
+from django.core.mail import send_mail
+from django.contrib.auth import logout
+from oauth2_provider.models import AccessToken, RefreshToken
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
-from RentApp.models import User, Accommodation, Image, Post, CommentPost, Follow
+from RentApp.models import User, Accommodation, Image, Post, CommentPost, Follow, Notification
 from RentApp.serializers import UserSerializer, ImageSerializer, AccommodationSerializer, \
-    CommentPostSerializer, PostSerializer, FollowSerializer
+    CommentPostSerializer, PostSerializer, FollowSerializer, NotificationSerializer
 
 
 # Create your views here.
@@ -60,6 +64,23 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({'error': 'Error creating user'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['POST'], detail=False, url_path='logout', url_name='logout')
+    def logout_user(self, request):
+        try:
+            access_token_string = request.headers.get('Authorization', '').replace('Bearer ', '')
+            AccessToken.objects.filter(token=access_token_string).delete()
+
+            refresh_token_string = request.data.get('refresh_token')
+            if refresh_token_string:
+                RefreshToken.objects.filter(token=refresh_token_string).delete()
+
+            logout(request)
+
+            return Response({'success': 'User logged out successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({'error': 'Error logging out user'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['GET'], detail=False, url_path='detail')
     def detail_user(self, request):
@@ -299,3 +320,24 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class NotificationsViewSet(viewsets.ModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+
+    @action(methods=['POST'], detail=False, url_path='create')
+    def create_notification(self, request):
+        pass
+
+    @action(methods=['POST'], detail=False, url_path='mailto')
+    def send_email(self, request):
+        subject, msg = self.get_info()
+        send_mail(
+            subject='Notification from RentApp',
+            message=msg,
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=[settings.RECIPIENT_ADDRESS],
+            fail_silently=False,
+        )
+        pass
