@@ -123,10 +123,12 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
     def follow(self, request):
         try:
             queries = self.queryset
-            user_id = request.query_params.get('user_id')
-            user_follow = queries.get(pk=user_id)
+            username_follow = request.query_params.get('username')
+            user_follow = queries.get(username=username_follow)
             user = request.user
             follow, followed = Follow.objects.get_or_create(user=user, follow=user_follow)
+            if followed:
+                NotificationsViewSet.create_notification_follow(f'{user} started following {user_follow.username}', user_follow.username)
             if not followed:
                 follow.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
@@ -187,6 +189,7 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
                 content=data.get('content'),
                 user_post=user,
             )
+            NotificationsViewSet.create_notification_post_accommodation(f'{user} posted new post', user),
             return Response(data=PostSerializer(post_instance).data, status=status.HTTP_201_CREATED)
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -197,6 +200,7 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
         try:
             data = request.data
             user = request.user
+            NotificationsViewSet.create_notification_comment_post(f'{user} commented your post', post=self.get_object())
             return Response(data=CommentPostSerializer(
                 CommentPost.objects.create(
                     user_comment=user,
@@ -299,6 +303,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
                         image=image_url,
                         accommodation=accommodation
                     )
+                NotificationsViewSet.create_notification_post_accommodation(f'{user} posted new accommodation', user)
                 return Response(data=AccommodationSerializer(accommodation, context={'request': request}).data,
                                 status=status.HTTP_201_CREATED)
             else:
@@ -322,15 +327,55 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class NotificationsViewSet(viewsets.ModelViewSet):
+class NotificationsViewSet(viewsets.ViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
 
-    @action(methods=['POST'], detail=False, url_path='create')
-    def create_notification(self, request):
-        pass
+    def create_notification_follow(notification, user_receive):
+        try:
+            Notification.objects.create(notice=notification, user=user_receive)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['POST'], detail=False, url_path='mailto')
+
+    def create_notification_post_accommodation(notification, user_send):
+        try:
+            user_send_id = User.objects.get(username=user_send).id
+            user_follow_user_send = Follow.objects.filter(follow_id=user_send_id)
+            print(user_follow_user_send)
+            for user in user_follow_user_send:
+                Notification.objects.create(notice=notification, user=User.objects.get(pk=user.user_id))
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def create_notification_comment_post(notification, post):
+        try:
+            user = Post.objects.get(id=post.id).user_post
+            Notification.objects.create(notice=notification, user=User.objects.get(username=user))
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=False, url_path='get')
+    def get_notifications(self, request):
+        try:
+            user = request.query_params.get('username')
+            userid = User.objects.get(username=user).id
+            notifications = Notification.objects.filter(user_id=userid)
+            notice = []
+            for notification in notifications:
+                notice.append(notification.notice)
+            return Response(data={
+                'user': userid,
+                'notices': notice
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
     def send_email(self, request):
         subject, msg = self.get_info()
         send_mail(

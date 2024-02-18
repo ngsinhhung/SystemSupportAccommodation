@@ -25,6 +25,8 @@ class Follow(models.Model):
     user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='follower')
     follow = models.ForeignKey('User', on_delete=models.CASCADE, related_name='following')
 
+    def __str__(self):
+        return f'{self.user} follow {self.follow}'
 
 class Accommodation(BaseModel):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='accommodation')
