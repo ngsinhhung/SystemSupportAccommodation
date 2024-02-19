@@ -77,7 +77,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['PATCH'], detail=True, url_path='update')
-    def update_user(self, request):
+    def update_user(self, request,pk):
         try:
             data = request.data
             user_instance = self.get_object()
@@ -336,13 +336,13 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
     @action(methods=['GET'], detail=True, url_path='detail')
     def detail_accommodation(self, request, pk):
         try:
-            return Response(data=AccommodationSerializer(Accommodation.objects.get(pk=pk)).data, status=status.HTTP_200_OK)
+            return Response(data=AccommodationSerializer(Accommodation.objects.get(pk=pk),context={'request': request}).data, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['GET'], detail=False, url_path='get')
-    def get_accommodations_of_user(self, request, pk):
+    @action(methods=['GET'], detail=False, url_path='accmmodation_user')
+    def get_accommodations_of_user(self, request):
         try:
             user = request.user
             userid = User.objects.get(username=user).id

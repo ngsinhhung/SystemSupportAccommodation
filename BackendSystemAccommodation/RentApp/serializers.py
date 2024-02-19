@@ -5,7 +5,15 @@ from rest_framework_recursive.fields import RecursiveField
 
 from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost
 
-
+class BaseImage(ModelSerializer):
+    image = SerializerMethodField(source="image")
+    def get_image(self,content):
+        if content.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(content.image)
+            return content.image.url
+        return None
 class UserSerializer(ModelSerializer):
     avatar_user = SerializerMethodField(source='avatar_user')
 
@@ -36,12 +44,14 @@ class FollowSerializer(ModelSerializer):
         model = Follow
         fields = '__all__'
 
-class ImageAccommodationSerializer(ModelSerializer):
+class ImageAccommodationSerializer(BaseImage):
     class Meta:
         model = ImageAccommodation
         fields = ['image', 'created_at']
 
-class ImagePostSerializer(ModelSerializer):
+class ImagePostSerializer(BaseImage):
+    image = SerializerMethodField(source='image')
+
     class Meta:
         model = ImagePost
         fields = ['image', 'created_at']
