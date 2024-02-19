@@ -75,7 +75,6 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             if refresh_token_string:
                 RefreshToken.objects.filter(token=refresh_token_string).delete()
 
-            logout(request)
 
             return Response({'success': 'User logged out successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -94,21 +93,28 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['PATCH'], detail=False, url_path='update')
-    def update_user(self, request):
+    @action(methods=['PATCH'], detail=True, url_path='update')
+    def update_user(self, request, pk):
         try:
             data = request.data
-            user_instance = User.objects.get(username=request.user)
+            user_instance = self.get_object()
 
             for key, value in data.items():
                 setattr(user_instance, key, value)
-            if data.get('avatar_user') is None:
-                pass
-            else:
-                avatar_file = data.get('avatar_user')
-                res = cloudinary.uploader.upload(avatar_file, folder='avatar_user/')
-                user_instance.avatar_user = res['secure_url']
+
+            # Check if 'avatar_user' is present in the request data
+            if 'avatar_user' in data:
+                avatar_file = data['avatar_user']
+                if avatar_file is not None:
+                    # If 'avatar_user' is not None, upload and update avatar
+                    res = cloudinary.uploader.upload(avatar_file, folder='avatar_user/')
+                    user_instance.avatar_user = res['secure_url']
+                else:
+                    # If 'avatar_user' is None, set avatar to None
+                    user_instance.avatar_user = None
+
             user_instance.save()
+
             return Response(data=UserSerializer(user_instance, context={'request': request}).data,
                             status=status.HTTP_200_OK)
         except Exception as e:
@@ -183,10 +189,27 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
         try:
             user = request.user
             data = request.data
+            content = data.get('content')
+            caption = data.get('caption')
+            description = data.get('description')
+            image_files = request.FILES.getlist('image')
+            print(image_files)
             post_instance = Post.objects.create(
-                content=data.get('content'),
+                content=content,
+                caption=caption,
+                description=description,
                 user_post=user,
             )
+
+            # Upload images to Cloudinary and associate with the post
+            for file in image_files:
+                res = cloudinary.uploader.upload(file, folder='post_image/')
+                image_url = res['secure_url']
+                image_instance = Image.objects.create(
+                    image=image_url,
+                    post=post_instance
+                )
+
             return Response(data=PostSerializer(post_instance).data, status=status.HTTP_201_CREATED)
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -279,8 +302,8 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
             user = request.user
             data = request.data
             if user.role in ['HOST']:
-                if len(request.FILES.getlist('image')) < 3:
-                    return Response({"Error": "You must upload at least THREE image"})
+                if len(request.FILES.getlist('image')) > 3:
+                    return Response({"Error": "You must upload at least THREE image"},status= status.HTTP_400_BAD_REQUEST)
                 accommodation = Accommodation.objects.create(
                     owner=user,
                     address=data.get('address'),
@@ -291,6 +314,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
                     latitude=data.get('latitude'),
                     longitude=data.get('longitude'),
                 )
+
                 image_instance = None
                 for file in request.FILES.getlist('image'):
                     res = cloudinary.uploader.upload(file, folder='post_image/')

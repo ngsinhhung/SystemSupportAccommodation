@@ -42,15 +42,17 @@ class Accommodation(BaseModel):
 
 class Image(models.Model):
     image = CloudinaryField('image', null=True, blank=True)
-    accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name="accommodation_image")
+    accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name="accommodation_image",null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    post = models.ForeignKey("Post", on_delete=models.CASCADE, related_name="post_image",null=True)
     def __str__(self):
         return f'Image_of_{self.accommodation_id}'
 
 class Post(BaseModel):
     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_post')
-    content = models.TextField()
+    content = models.TextField(null=True)
+    description = models.TextField(null=True)
+    caption = models.TextField(null=True)
     is_approved = models.BooleanField(default=False, choices=[(True, 'Approved'), (False, 'Not Approved')])
 
     def __str__(self):
