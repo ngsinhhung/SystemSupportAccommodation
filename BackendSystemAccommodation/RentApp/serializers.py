@@ -63,7 +63,7 @@ class PostSerializer(ModelSerializer):
     image = SerializerMethodField()
     class Meta:
         model = Post
-        fields = ['id', 'user_post', 'content', 'is_approved', 'image']
+        fields = ['id', 'user_post', 'content', 'caption', 'description', 'is_approved', 'image']
 
     def get_image(self, obj):
         return ImagePostSerializer(

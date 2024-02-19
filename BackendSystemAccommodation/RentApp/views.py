@@ -76,11 +76,11 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['PATCH'], detail=False, url_path='update')
+    @action(methods=['PATCH'], detail=True, url_path='update')
     def update_user(self, request):
         try:
             data = request.data
-            user_instance = User.objects.get(username=request.user)
+            user_instance = self.get_object()
 
             for key, value in data.items():
                 setattr(user_instance, key, value)
@@ -170,6 +170,8 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIVi
             post_instance = Post.objects.create(
                 content=data.get('content'),
                 user_post=user,
+                caption=data.get('caption'),
+                description=data.get('description'),
             )
             image_instance = None
             for file in request.FILES.getlist('image'):

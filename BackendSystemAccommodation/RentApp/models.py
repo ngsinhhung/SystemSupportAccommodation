@@ -61,6 +61,8 @@ class ImagePost(models.Model):
 class Post(BaseModel):
     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_post')
     content = models.TextField()
+    caption = models.TextField(null=True)
+    description = models.TextField(null=True)
     is_approved = models.BooleanField(default=False, choices=[(True, 'Approved'), (False, 'Not Approved')])
 
     def __str__(self):
