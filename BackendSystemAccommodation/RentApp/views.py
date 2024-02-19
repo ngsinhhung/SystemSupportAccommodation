@@ -1,12 +1,11 @@
 import cloudinary.uploader
-from django.conf import settings
-from django.core.mail import send_mail
 from django.contrib.auth import logout
 from oauth2_provider.models import AccessToken, RefreshToken
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
+from .utils import sendEmail
 
 from RentApp.models import User, Accommodation, Image, Post, CommentPost, Follow, Notification
 from RentApp.serializers import UserSerializer, ImageSerializer, AccommodationSerializer, \
@@ -65,23 +64,6 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({'error': 'Error creating user'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['POST'], detail=False, url_path='logout', url_name='logout')
-    def logout_user(self, request):
-        try:
-            access_token_string = request.headers.get('Authorization', '').replace('Bearer ', '')
-            AccessToken.objects.filter(token=access_token_string).delete()
-
-            refresh_token_string = request.data.get('refresh_token')
-            if refresh_token_string:
-                RefreshToken.objects.filter(token=refresh_token_string).delete()
-
-            logout(request)
-
-            return Response({'success': 'User logged out successfully'}, status=status.HTTP_200_OK)
-        except Exception as e:
-            print(f"Error: {str(e)}")
-            return Response({'error': 'Error logging out user'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
     @action(methods=['GET'], detail=False, url_path='detail')
     def detail_user(self, request):
         try:
@@ -128,7 +110,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             user = request.user
             follow, followed = Follow.objects.get_or_create(user=user, follow=user_follow)
             if followed:
-                NotificationsViewSet.create_notification_follow(f'{user} started following {user_follow.username}', user_follow.username)
+                NotificationsViewSet.create_notification_follow(f'{user} started following {user_follow.username}', user_follow)
             if not followed:
                 follow.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
@@ -212,12 +194,41 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['GET'], detail=True, url_path='comments')
+    @action(methods=['GET'], detail=True, url_path='comments_of_post')
     def get_comments(self, request, pk):
         try:
             post = self.get_object()
             comments = CommentPost.objects.filter(post_id=post.id)
             return Response(data=CommentPostSerializer(comments, many=True).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=False, url_path='post_of_user')
+    def get_post_of_user(self, request):
+        try:
+            user = request.query_params.get('username')
+            userid = User.objects.get(username=user).id
+            posts = Post.objects.filter(user_post_id=userid)
+            return Response(data=PostSerializer(posts, many=True).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=False, url_path='approved')
+    def get_approved_posts(self, request):
+        try:
+            posts = self.queryset.filter(is_approved=True)
+            return Response(data=PostSerializer(posts, many=True).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=False, url_path='not_approved')
+    def get_posts_not_approved(self, request):
+        try:
+            posts = self.queryset.filter(is_approved=False)
+            return Response(data=PostSerializer(posts, many=True).data, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -284,7 +295,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
             data = request.data
             if user.role in ['HOST']:
                 if len(request.FILES.getlist('image')) < 3:
-                    return Response({"Error": "You must upload at least THREE image"})
+                    return Response({"Error": "You must upload at least THREE image"}, status=status.HTTP_400_BAD_REQUEST)
                 accommodation = Accommodation.objects.create(
                     owner=user,
                     address=data.get('address'),
@@ -326,6 +337,35 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(methods=['GET'], detail=False, url_path='get')
+    def get_accommodations_of_user(self, request, pk):
+        try:
+            user = request.query_params.get('username')
+            userid = User.objects.get(username=user).id
+            accommodations = Accommodation.objects.filter(owner=userid)
+            return Response(data=AccommodationSerializer(accommodations, many=True).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=False, url_path='verified')
+    def accommodation_is_verified(self, request):
+        try:
+            accommodation = self.queryset.filter(is_verified=True)
+            return Response(data=AccommodationSerializer(accommodation, many=True).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=False, url_path='not_verified')
+    def accommodation_not_verified(self, request):
+        try:
+            accommodation = self.queryset.filter(is_verified=False)
+            return Response(data=AccommodationSerializer(accommodation, many=True).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class NotificationsViewSet(viewsets.ViewSet):
     queryset = Notification.objects.all()
@@ -334,6 +374,7 @@ class NotificationsViewSet(viewsets.ViewSet):
     def create_notification_follow(notification, user_receive):
         try:
             Notification.objects.create(notice=notification, user=user_receive)
+            sendEmail(notification, recipients=[user_receive.email])
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -343,9 +384,12 @@ class NotificationsViewSet(viewsets.ViewSet):
         try:
             user_send_id = User.objects.get(username=user_send).id
             user_follow_user_send = Follow.objects.filter(follow_id=user_send_id)
-            print(user_follow_user_send)
+            recipients_array = []
             for user in user_follow_user_send:
                 Notification.objects.create(notice=notification, user=User.objects.get(pk=user.user_id))
+                recipients_array.append(User.objects.get(pk=user.user_id).email)
+            sendEmail(notification, recipients=recipients_array)
+
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -354,6 +398,8 @@ class NotificationsViewSet(viewsets.ViewSet):
         try:
             user = Post.objects.get(id=post.id).user_post
             Notification.objects.create(notice=notification, user=User.objects.get(username=user))
+            sendEmail(notification, recipients=[User.objects.get(username=user).email])
+
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -374,15 +420,3 @@ class NotificationsViewSet(viewsets.ViewSet):
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-    def send_email(self, request):
-        subject, msg = self.get_info()
-        send_mail(
-            subject='Notification from RentApp',
-            message=msg,
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[settings.RECIPIENT_ADDRESS],
-            fail_silently=False,
-        )
-        pass

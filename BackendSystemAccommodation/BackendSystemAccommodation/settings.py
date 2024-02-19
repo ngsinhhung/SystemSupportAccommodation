@@ -150,12 +150,12 @@ REST_FRAMEWORK = {
 }
 
 #AUTO SEND EMAIL
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'clintonfranklin120@gmail.com'
-# EMAIL_HOST_PASSWORD = 'itxkoaidlwzxxqkq'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'clintonfranklin120@gmail.com'
+EMAIL_HOST_PASSWORD = 'itxkoaidlwzxxqkq'
 
 # OAUTH2_PROVIDER = {
 #     'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
