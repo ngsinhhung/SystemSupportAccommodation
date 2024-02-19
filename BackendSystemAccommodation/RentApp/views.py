@@ -76,11 +76,11 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['PATCH'], detail=False, url_path='update')
-    def update_user(self, request):
+    @action(methods=['PATCH'], detail=True, url_path='update')
+    def update_user(self, request,pk):
         try:
             data = request.data
-            user_instance = User.objects.get(username=request.user)
+            user_instance = self.get_object()
 
             for key, value in data.items():
                 setattr(user_instance, key, value)
@@ -167,10 +167,17 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
         try:
             user = request.user
             data = request.data
+            content = data.get("content")
+            caption = data.get("caption")
+            description = data.get("description")
+            image_file = request.FILES.getlist("image")
             post_instance = Post.objects.create(
-                content=data.get('content'),
+                content=content,
+                caption = caption,
+                description = description,
                 user_post=user,
             )
+
             NotificationsViewSet.create_notification_post_accommodation(f'{user} posted new post', user),
             return Response(data=PostSerializer(post_instance).data, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -207,7 +214,7 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
     @action(methods=['GET'], detail=False, url_path='post_of_user')
     def get_post_of_user(self, request):
         try:
-            user = request.query_params.get('username')
+            user = request.user
             userid = User.objects.get(username=user).id
             posts = Post.objects.filter(user_post_id=userid)
             return Response(data=PostSerializer(posts, many=True).data, status=status.HTTP_200_OK)
@@ -337,7 +344,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['GET'], detail=False, url_path='get')
+    @action(methods=['GET'], detail=False, url_path='user_accommodation')
     def get_accommodations_of_user(self, request, pk):
         try:
             user = request.query_params.get('username')
