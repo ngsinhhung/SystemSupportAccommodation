@@ -7,8 +7,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from .utils import sendEmail
 
-from RentApp.models import User, Accommodation, Image, Post, CommentPost, Follow, Notification
-from RentApp.serializers import UserSerializer, ImageSerializer, AccommodationSerializer, \
+from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost
+from RentApp.serializers import UserSerializer, ImageAccommodationSerializer, AccommodationSerializer, \
     CommentPostSerializer, PostSerializer, FollowSerializer, NotificationSerializer
 
 
@@ -156,7 +156,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             return Response({"Error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
+class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView, generics.DestroyAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     permission_classes = [permissions.AllowAny]
@@ -171,6 +171,14 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
                 content=data.get('content'),
                 user_post=user,
             )
+            image_instance = None
+            for file in request.FILES.getlist('image'):
+                res = cloudinary.uploader.upload(file, folder='post_image/')
+                image_url = res['secure_url']
+                image_instance = ImagePost.objects.create(
+                    image=image_url,
+                    post=post_instance
+                )
             NotificationsViewSet.create_notification_post_accommodation(f'{user} posted new post', user),
             return Response(data=PostSerializer(post_instance).data, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -207,7 +215,7 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
     @action(methods=['GET'], detail=False, url_path='post_of_user')
     def get_post_of_user(self, request):
         try:
-            user = request.query_params.get('username')
+            user = request.user
             userid = User.objects.get(username=user).id
             posts = Post.objects.filter(user_post_id=userid)
             return Response(data=PostSerializer(posts, many=True).data, status=status.HTTP_200_OK)
@@ -310,7 +318,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
                 for file in request.FILES.getlist('image'):
                     res = cloudinary.uploader.upload(file, folder='post_image/')
                     image_url = res['secure_url']
-                    image_instance = Image.objects.create(
+                    image_instance = ImageAccommodation.objects.create(
                         image=image_url,
                         accommodation=accommodation
                     )
@@ -326,13 +334,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
     @action(methods=['GET'], detail=True, url_path='detail')
     def detail_accommodation(self, request, pk):
         try:
-            accommodation = AccommodationSerializer(Accommodation.objects.get(pk=pk)).data
-            image_accommodation = Image.objects.filter(accommodation=pk)
-            images = []
-            for image in image_accommodation:
-                images.append(str(image.image))
-            accommodation['images'] = images
-            return Response(data=accommodation, status=status.HTTP_200_OK)
+            return Response(data=AccommodationSerializer(Accommodation.objects.get(pk=pk)).data, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -340,7 +342,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
     @action(methods=['GET'], detail=False, url_path='get')
     def get_accommodations_of_user(self, request, pk):
         try:
-            user = request.query_params.get('username')
+            user = request.user
             userid = User.objects.get(username=user).id
             accommodations = Accommodation.objects.filter(owner=userid)
             return Response(data=AccommodationSerializer(accommodations, many=True).data, status=status.HTTP_200_OK)

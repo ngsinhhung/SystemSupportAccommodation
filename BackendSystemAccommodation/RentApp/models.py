@@ -42,13 +42,21 @@ class Accommodation(BaseModel):
     def __str__(self):
         return f'Accommodation_{self.owner.username}'
 
-class Image(models.Model):
+class ImageAccommodation(models.Model):
     image = CloudinaryField('image', null=True, blank=True)
     accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name="accommodation_image")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'Image_of_{self.accommodation_id}'
+
+class ImagePost(models.Model):
+    image = CloudinaryField('image', null=True, blank=True)
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name="post_image")
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f'Image_of_{self.post_id}'
+
 
 class Post(BaseModel):
     user_post = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_post')

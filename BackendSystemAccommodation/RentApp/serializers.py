@@ -3,7 +3,7 @@ from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
 from rest_framework_recursive.fields import RecursiveField
 
-from RentApp.models import User, Accommodation, Image, Post, CommentPost, Follow, Notification
+from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost
 
 
 class UserSerializer(ModelSerializer):
@@ -36,19 +36,40 @@ class FollowSerializer(ModelSerializer):
         model = Follow
         fields = '__all__'
 
-class ImageSerializer(ModelSerializer):
+class ImageAccommodationSerializer(ModelSerializer):
     class Meta:
-        model = Image
-        fields = ['image', 'accommodation']
+        model = ImageAccommodation
+        fields = ['image', 'created_at']
+
+class ImagePostSerializer(ModelSerializer):
+    class Meta:
+        model = ImagePost
+        fields = ['image', 'created_at']
+
 class AccommodationSerializer(ModelSerializer):
+    image = SerializerMethodField()
     class Meta:
         model = Accommodation
-        fields = '__all__'
+        fields = ['id', 'owner', 'address', 'district', 'city', 'number_of_people', 'rent_cost', 'latitude', 'longitude', 'is_rented', 'image']
+
+    def get_image(self, obj):
+        return ImageAccommodationSerializer(
+            ImageAccommodation.objects.filter(accommodation_id=obj.id),
+            many=True
+        ).data
+
 
 class PostSerializer(ModelSerializer):
+    image = SerializerMethodField()
     class Meta:
         model = Post
-        fields = ['id', 'user_post', 'content', 'is_approved']
+        fields = ['id', 'user_post', 'content', 'is_approved', 'image']
+
+    def get_image(self, obj):
+        return ImagePostSerializer(
+            ImagePost.objects.filter(post_id=obj.id),
+            many=True
+        ).data
 
 
 class CommentPostSerializer(ModelSerializer):
