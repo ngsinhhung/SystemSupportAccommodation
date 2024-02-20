@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from .utils import sendEmail
 
 from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost
-from RentApp.serializers import UserSerializer, ImageAccommodationSerializer, AccommodationSerializer, \
+from RentApp.serializers import UserSerializer, AccommodationSerializer, \
     CommentPostSerializer, PostSerializer, FollowSerializer, NotificationSerializer
 
 
@@ -214,7 +214,7 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIVi
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['GET'], detail=False, url_path='post_of_user')
+    @action(methods=['GET'], detail=False, url_path='post_user')
     def get_post_of_user(self, request):
         try:
             user = request.user
@@ -341,8 +341,8 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['GET'], detail=False, url_path='accmmodation_user')
-    def get_accommodations_of_user(self, request):
+    @action(methods=['GET'], detail=False, url_path='accommodation_user')
+    def get_accommodations_user(self, request):
         try:
             user = request.user
             userid = User.objects.get(username=user).id
@@ -411,7 +411,7 @@ class NotificationsViewSet(viewsets.ViewSet):
     @action(methods=['GET'], detail=False, url_path='get')
     def get_notifications(self, request):
         try:
-            user = request.query_params.get('username')
+            user = request.user
             userid = User.objects.get(username=user).id
             notifications = Notification.objects.filter(user_id=userid)
             notice = []

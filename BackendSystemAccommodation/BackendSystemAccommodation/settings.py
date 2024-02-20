@@ -14,10 +14,10 @@ import cloudinary.uploader
 import cloudinary.api
 
 cloudinary.config(
-    cloud_name = "dmdljcwau",
-    api_key = "751729637915529",
-    api_secret = "-9greGmb76IjiPCDjePMEPuuz1I",
-    secure = True
+    cloud_name="dmdljcwau",
+    api_key="751729637915529",
+    api_secret="-9greGmb76IjiPCDjePMEPuuz1I",
+    secure=True
 )
 
 from pathlib import Path
@@ -92,15 +92,11 @@ WSGI_APPLICATION = 'BackendSystemAccommodation.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dbaccmommdationapp',
+        'NAME': 'newtest2',
         'USER': 'root',
-        'PASSWORD': '120900',
+        'PASSWORD': 'Sinhhung1212@',
         'HOST': ''
     }
-}
-REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 10
 }
 
 # Password validation
@@ -149,7 +145,10 @@ AUTH_USER_MODEL = 'RentApp.User'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
-    )
+    ),
+
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 2
 }
 
 #AUTO SEND EMAIL

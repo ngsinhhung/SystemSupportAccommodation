@@ -71,6 +71,7 @@ class AccommodationSerializer(ModelSerializer):
 
 class PostSerializer(ModelSerializer):
     image = SerializerMethodField()
+    user_post = UserSerializer(read_only=True)
     class Meta:
         model = Post
         fields = ['id', 'user_post', 'content', 'caption', 'description', 'is_approved', 'image']
