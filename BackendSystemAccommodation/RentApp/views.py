@@ -1,10 +1,13 @@
 import cloudinary.uploader
+import requests
 from django.contrib.auth import logout
 from oauth2_provider.models import AccessToken, RefreshToken
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
+
+from .pagination import CustomPageNumberPagination
 from .utils import sendEmail
 
 from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost
@@ -208,7 +211,7 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIVi
     def get_comments(self, request, pk):
         try:
             post = self.get_object()
-            comments = CommentPost.objects.filter(post_id=post.id)
+            comments = CommentPost.objects.filter(post_id=post.id).filter(parent_comment__isnull=True)
             return Response(data=CommentPostSerializer(comments, many=True).data, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -295,8 +298,26 @@ class CommentPostViewSet(viewsets.ViewSet, generics.ListAPIView):
 class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
+    pagination_class = CustomPageNumberPagination
     permission_classes = [permissions.AllowAny, ]
     parser_classes = [MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        query = self.queryset
+        filter_accommodation = []
+        longitude = self.request.query_params.get("longitude")
+        latitude = self.request.query_params.get("latitude")
+        key = 'AhKaL22nil7f0VevfVpYLr0hEEFmMQ_YaQ3dlIfTJYOfRv3Jbdufdyj0NSF6PVqr'
+        if longitude and latitude:
+            for item in query:
+                reponse = requests.get(
+                    f"https://dev.virtualearth.net/REST/v1/Routes/Driving?o=json&wp.0={latitude},{longitude}&wp.1={item.latitude},{item.longitude}&key={key}")
+                data = reponse.json()
+                if data.get("resourceSets")[0].get("resources")[0].get("travelDistance") < 10:
+                    filter_accommodation.append(item)
+            return filter_accommodation
+        return query
+
 
     @action(methods=['POST'], detail=False, url_path='create')
     def create_accommodation(self, request):
@@ -402,7 +423,6 @@ class NotificationsViewSet(viewsets.ViewSet):
         try:
             user = Post.objects.get(id=post.id).user_post
             Notification.objects.create(notice=notification, user=User.objects.get(username=user))
-            sendEmail(notification, recipients=[User.objects.get(username=user).email])
 
         except Exception as e:
             print(f"Error: {str(e)}")

@@ -60,7 +60,7 @@ class AccommodationSerializer(ModelSerializer):
     image = SerializerMethodField()
     class Meta:
         model = Accommodation
-        fields = ['id', 'owner', 'address', 'district', 'city', 'number_of_people', 'rent_cost', 'latitude', 'longitude', 'is_rented', 'image']
+        fields = ['id', 'owner', 'address', 'district', 'city', 'number_of_people', 'rent_cost', 'latitude', 'longitude', 'created_at', 'is_rented', 'image']
 
     def get_image(self, obj):
         return ImageAccommodationSerializer(
@@ -74,7 +74,7 @@ class PostSerializer(ModelSerializer):
     user_post = UserSerializer(read_only=True)
     class Meta:
         model = Post
-        fields = ['id', 'user_post', 'content', 'caption', 'description', 'is_approved', 'image']
+        fields = ['id', 'user_post', 'content', 'caption', 'description', 'is_approved', 'created_at',  'image']
 
     def get_image(self, obj):
         return ImagePostSerializer(
@@ -87,7 +87,7 @@ class CommentPostSerializer(ModelSerializer):
     reply_comment = RecursiveField(many=True)
     class Meta:
         model = CommentPost
-        fields = ['id', 'user_comment', 'post', 'text', 'parent_comment', 'reply_comment']
+        fields = ['id', 'user_comment', 'post', 'text', 'parent_comment', 'created_at', 'reply_comment']
 
 class NotificationSerializer(ModelSerializer):
     class Meta:
