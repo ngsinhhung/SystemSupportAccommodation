@@ -79,10 +79,12 @@ class CommentPost(BaseModel):
 
 
 class Notification(models.Model):
-    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='notifications')
+    sender = models.ForeignKey('User', on_delete=models.PROTECT, related_name='notification_sender')
+    recipient = models.ForeignKey('User', on_delete=models.CASCADE, related_name='notifications_recipient')
     notice = models.TextField()
     created_at = models.DateTimeField(auto_now=True)
     is_read = models.BooleanField(default=False)
 
     def __str__(self):
-        return f'Notify_{self.id}_of_{self.user.username}'
+        return f'Notify_{self.id}_of_{self.recipient.username}'
+
