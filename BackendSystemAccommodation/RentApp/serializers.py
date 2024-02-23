@@ -16,6 +16,16 @@ class BaseImage(ModelSerializer):
         return None
 class UserSerializer(ModelSerializer):
     avatar_user = SerializerMethodField(source='avatar_user')
+    followers = SerializerMethodField()
+    following = SerializerMethodField()
+
+    def get_followers(self, obj):
+        current_user = obj.id
+        return Follow.objects.filter(follow_id=current_user).count()
+
+    def get_following(self, obj):
+        current_user = obj.id
+        return Follow.objects.filter(user_id=current_user).count()
 
     def get_avatar_user(self, user):
         if user.avatar_user:
@@ -27,7 +37,7 @@ class UserSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'email', 'username', 'password', 'avatar_user', 'phone', 'role']
+        fields = ['id', 'first_name', 'last_name', 'email', 'username', 'password', 'avatar_user', 'phone', 'role', 'followers', 'following']
         extra_kwargs = {
             'password': {'write_only': True},
         }

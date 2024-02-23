@@ -71,10 +71,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
     def detail_user(self, request):
         try:
             current_user = User.objects.get(username=request.user)
-            data = UserSerializer(current_user, context={'request': request}).data
-            data['followers'] = Follow.objects.filter(follow_id=current_user.id).count()
-            data['following'] = Follow.objects.filter(user_id=current_user.id).count()
-            return Response(data=data, status=status.HTTP_200_OK)
+            return Response(data=UserSerializer(current_user, context={'request': request}).data, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -161,6 +158,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
 
 class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView, generics.DestroyAPIView):
     queryset = Post.objects.all()
+    pagination_class = CustomPageNumberPagination
     serializer_class = PostSerializer
     permission_classes = [permissions.AllowAny]
     parser_classes = [MultiPartParser, FormParser]
@@ -184,7 +182,7 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIVi
                     image=image_url,
                     post=post_instance
                 )
-            NotificationsViewSet.create_notification_post_accommodation(f'{user} posted new post', user),
+            NotificationsViewSet.create_notification_post_accommodation(f'{user} added new post', user),
             return Response(data=PostSerializer(post_instance).data, status=status.HTTP_201_CREATED)
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -345,7 +343,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
                         image=image_url,
                         accommodation=accommodation
                     )
-                NotificationsViewSet.create_notification_post_accommodation(f'{user} posted new accommodation', user)
+                NotificationsViewSet.create_notification_post_accommodation(f'{user} added new accommodation', user)
                 return Response(data=AccommodationSerializer(accommodation, context={'request': request}).data,
                                 status=status.HTTP_201_CREATED)
             else:
@@ -392,9 +390,20 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class NotificationsViewSet(viewsets.ViewSet):
+class NotificationsViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
+    permission_classes = [permissions.AllowAny, ]
+
+    def get_queryset(self):
+        try:
+            user = self.request.user
+            userid = User.objects.get(username=user).id
+            notifications = self.queryset.filter(user_id=userid)
+            return notifications
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create_notification_follow(notification, user_receive):
         try:
@@ -424,23 +433,6 @@ class NotificationsViewSet(viewsets.ViewSet):
             user = Post.objects.get(id=post.id).user_post
             Notification.objects.create(notice=notification, user=User.objects.get(username=user))
 
-        except Exception as e:
-            print(f"Error: {str(e)}")
-            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    @action(methods=['GET'], detail=False, url_path='get')
-    def get_notifications(self, request):
-        try:
-            user = request.user
-            userid = User.objects.get(username=user).id
-            notifications = Notification.objects.filter(user_id=userid)
-            notice = []
-            for notification in notifications:
-                notice.append(notification.notice)
-            return Response(data={
-                'user': userid,
-                'notices': notice
-            }, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
