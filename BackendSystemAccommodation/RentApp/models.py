@@ -78,6 +78,14 @@ class CommentPost(BaseModel):
     def __str__(self):
         return f'Comment_post_{self.post.id}'
 
+class CommentAccommodation(BaseModel):
+    user_comment = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_comment_accommodation')
+    accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name='accommodation_comment', unique=False)
+    text = models.TextField()
+    parent_comment = models.ForeignKey('CommentAccommodation', on_delete=models.CASCADE, related_name='reply_comment', null=True, blank=True)
+    def __str__(self):
+        return f'Comment_post_{self.accommodation.id}'
+
 
 class Notification(models.Model):
     sender = models.ForeignKey('User', on_delete=models.PROTECT, related_name='notification_sender')

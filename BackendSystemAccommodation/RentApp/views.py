@@ -10,9 +10,10 @@ from rest_framework.response import Response
 from .pagination import CustomPageNumberPagination
 from .utils import sendEmail
 
-from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost
+from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost, \
+    CommentAccommodation
 from RentApp.serializers import UserSerializer, AccommodationSerializer, \
-    CommentPostSerializer, PostSerializer, FollowSerializer, NotificationSerializer
+    CommentPostSerializer, PostSerializer, FollowSerializer, NotificationSerializer, CommentAccommodationSerializer
 
 
 # Create your views here.
@@ -195,7 +196,7 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIVi
             user = request.user
             post_instance = self.get_object()
             if user != post_instance.user_post:
-                NotificationsViewSet.create_notification_comment_post(f'{user} commented your post', post=post_instance, sender=user)
+                NotificationsViewSet.create_notification_comment_post_accommodation(post_or_accommodation=post_instance, sender=user)
             return Response(data=CommentPostSerializer(
                 CommentPost.objects.create(
                     user_comment=user,
@@ -207,7 +208,7 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIVi
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['GET'], detail=True, url_path='comments_of_post')
+    @action(methods=['GET'], detail=True, url_path='get_comment')
     def get_comments(self, request, pk):
         try:
             post = self.get_object()
@@ -267,8 +268,11 @@ class CommentPostViewSet(viewsets.ViewSet, generics.ListAPIView):
     @action(methods=['POST'], detail=True, url_path='reply')
     def add_reply_comment(self, request, pk):
         try:
-            post_instance = Post.objects.get(pk=CommentPost.objects.get(pk=pk).post_id)
+            user = request.user
             parent_comment = CommentPost.objects.get(pk=pk)
+            post_instance = Post.objects.get(pk=parent_comment.post_id)
+            if user != post_instance.user_post:
+                NotificationsViewSet.create_notification_comment_post_accommodation(post_or_accommodation=post_instance, sender=user)
             return Response(data=CommentPostSerializer(
                 CommentPost.objects.create(
                     user_comment=request.user,
@@ -350,11 +354,10 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
                     latitude=data.get('latitude'),
                     longitude=data.get('longitude'),
                 )
-                image_instance = None
                 for file in request.FILES.getlist('image'):
                     res = cloudinary.uploader.upload(file, folder='post_image/')
                     image_url = res['secure_url']
-                    image_instance = ImageAccommodation.objects.create(
+                    ImageAccommodation.objects.create(
                         image=image_url,
                         accommodation=accommodation
                     )
@@ -369,7 +372,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
     @action(methods=['GET'], detail=True, url_path='detail')
     def detail_accommodation(self, request, pk):
         try:
-            return Response(data=AccommodationSerializer(Accommodation.objects.get(pk=pk),context={'request': request}).data, status=status.HTTP_200_OK)
+            return Response(data=AccommodationSerializer(Accommodation.objects.get(pk=pk), context={'request': request}).data, status=status.HTTP_200_OK)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -399,6 +402,70 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
         try:
             accommodation = self.queryset.filter(is_verified=False)
             return Response(data=AccommodationSerializer(accommodation, many=True).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['POST'], detail=True, url_path='comment')
+    def add_comment_accommodation(self, request, pk):
+        try:
+            data = request.data
+            user = request.user
+            accommodation_instance = self.get_object()
+            if user != accommodation_instance.owner:
+                NotificationsViewSet.create_notification_comment_post_accommodation(post_or_accommodation=accommodation_instance, sender=user)
+            return Response(data=CommentAccommodationSerializer(
+                CommentAccommodation.objects.create(
+                    user_comment=user,
+                    accommodation=accommodation_instance,
+                    text=data.get('text')
+                )
+            ).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['GET'], detail=True, url_path='get_comment')
+    def get_comment_accommodation(self, request, pk):
+        try:
+            accommodation_id = self.get_object().id
+            comment = CommentAccommodation.objects.filter(accommodation_id=accommodation_id).filter(parent_comment__isnull=True)
+            return Response(data=CommentAccommodationSerializer(comment, many=True).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CommentAccommodationViewSet(viewsets.ViewSet):
+    queryset = CommentAccommodation.objects.filter(parent_comment__isnull=True)
+    serializer_class = CommentAccommodationSerializer
+    permission_classes = [permissions.AllowAny]
+
+    @action(methods=['POST'], detail=True, url_path='reply')
+    def add_reply_comment_accommodation(self, request, pk):
+        try:
+            user = request.user
+            parent_comment = CommentAccommodation.objects.get(pk=pk)
+            accommodation_instance = Accommodation.objects.get(pk=parent_comment.accommodation_id)
+            if user != accommodation_instance.owner:
+                NotificationsViewSet.create_notification_comment_post_accommodation(post_or_accommodation=accommodation_instance, sender=user)
+            return Response(data=CommentAccommodationSerializer(
+                CommentAccommodation.objects.create(
+                    user_comment=request.user,
+                    accommodation=accommodation_instance,
+                    text=request.data.get('text'),
+                    parent_comment=parent_comment,
+                )
+            ).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['DELETE'], detail=True, url_path='delete')
+    def delete_comment(self, request, pk):
+        try:
+            CommentAccommodation.objects.get(pk=pk).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -443,10 +510,18 @@ class NotificationsViewSet(viewsets.ViewSet, generics.ListAPIView):
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def create_notification_comment_post(self, notification, post, sender):
+
+    def create_notification_comment_post_accommodation(post_or_accommodation, sender):
         try:
             user_send = User.objects.get(username=sender)
-            user_receive = Post.objects.get(id=post.id).user_post
+            notification = None
+            user_receive = None
+            if isinstance(post_or_accommodation, Post):
+                notification = f'{sender} commented your post'
+                user_receive = Post.objects.get(id=post_or_accommodation.id).user_post
+            elif isinstance(post_or_accommodation, Accommodation):
+                notification = f'{sender} commented your post accommodation'
+                user_receive = Accommodation.objects.get(id=post_or_accommodation.id).owner
             Notification.objects.create(notice=notification, sender=user_send, recipient=User.objects.get(username=user_receive))
             return Response({"message": "Notification created successfully"}, status=status.HTTP_201_CREATED)
         except Exception as e:

@@ -3,7 +3,9 @@ from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
 from rest_framework_recursive.fields import RecursiveField
 
-from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost
+from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost, \
+    CommentAccommodation
+
 
 class BaseImage(ModelSerializer):
     image = SerializerMethodField(source="image")
@@ -101,8 +103,31 @@ class CommentPostSerializer(ModelSerializer):
         model = CommentPost
         fields = ['id', 'user_comment', 'post', 'text', 'parent_comment', 'created_at', 'reply_comment']
 
+
+class CommentAccommodationSerializer(ModelSerializer):
+    reply_comment = RecursiveField(many=True)
+    class Meta:
+        model = CommentAccommodation
+        fields = ['id', 'user_comment', 'accommodation', 'text', 'parent_comment', 'created_at', 'reply_comment']
+
+
+
+class SenderSerializer(BaseImage):
+    avatar_user = SerializerMethodField()
+    def get_avatar_user(self, user):
+        if user.avatar_user:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(user.avatar_user)
+            return user.avatar_user.url
+        return None
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'avatar_user']
+
 class NotificationSerializer(ModelSerializer):
-    sender = UserSerializer(read_only=True)
+    sender = SenderSerializer()
+
     class Meta:
         model = Notification
         fields = '__all__'
