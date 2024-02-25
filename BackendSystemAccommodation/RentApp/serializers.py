@@ -14,6 +14,7 @@ class BaseImage(ModelSerializer):
                 return request.build_absolute_uri(content.image)
             return content.image.url
         return None
+
 class UserSerializer(ModelSerializer):
     avatar_user = SerializerMethodField(source='avatar_user')
     followers = SerializerMethodField()
@@ -68,9 +69,10 @@ class ImagePostSerializer(BaseImage):
 
 class AccommodationSerializer(ModelSerializer):
     image = SerializerMethodField()
+    owner = UserSerializer(read_only=True)
     class Meta:
         model = Accommodation
-        fields = ['id', 'owner', 'address', 'district', 'city', 'number_of_people', 'rent_cost', 'latitude', 'longitude', 'created_at', 'is_rented', 'image']
+        fields = ['id', 'owner', 'address', 'district', 'city', 'number_of_people', 'rent_cost', 'latitude', 'longitude', 'created_at', 'is_rented', 'image','description']
 
     def get_image(self, obj):
         return ImageAccommodationSerializer(
@@ -100,6 +102,7 @@ class CommentPostSerializer(ModelSerializer):
         fields = ['id', 'user_comment', 'post', 'text', 'parent_comment', 'created_at', 'reply_comment']
 
 class NotificationSerializer(ModelSerializer):
+    sender = UserSerializer(read_only=True)
     class Meta:
         model = Notification
         fields = '__all__'

@@ -39,6 +39,7 @@ class Accommodation(BaseModel):
     longitude = models.FloatField(null=True, blank=True)
     is_verified = models.BooleanField(default=False, choices=[(True, 'Verified'), (False, 'Not Verified')])
     is_rented = models.BooleanField(default=False, choices=[(True, 'Rented'), (False, 'Not Rent')])
+    description = models.TextField(null=True)
     def __str__(self):
         return f'Accommodation_{self.owner.username}'
 

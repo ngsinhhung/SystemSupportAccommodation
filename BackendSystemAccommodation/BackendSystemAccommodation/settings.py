@@ -92,9 +92,9 @@ WSGI_APPLICATION = 'BackendSystemAccommodation.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'newtest2',
+        'NAME': 'appaccommodation',
         'USER': 'root',
-        'PASSWORD': 'Sinhhung1212@',
+        'PASSWORD': '120900',
         'HOST': ''
     }
 }
@@ -155,7 +155,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'clintonfranklin120@gmail.com'
 EMAIL_HOST_PASSWORD = 'itxkoaidlwzxxqkq'
-
+LOGIN_URL = '/admin/login/'
 OAUTH2_PROVIDER = {
     'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
 }
