@@ -1,6 +1,9 @@
 import cloudinary.uploader
 import requests
 from django.contrib.auth import logout
+from django.shortcuts import render
+from django.template.response import TemplateResponse
+from django.utils import timezone
 from oauth2_provider.models import AccessToken, RefreshToken
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
@@ -552,3 +555,137 @@ class NotificationsViewSet(viewsets.ViewSet, generics.ListAPIView):
         except Exception as e:
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def view_chart(request):
+    def by_user_month():
+        month = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        data = []
+        users = User.objects.all()
+        for i in month:
+            data.append(users.filter(last_login__month=i).count())
+
+        return {
+            "labels": month,
+            "data": data
+        }
+
+    def by_user_quarter():
+        quarter = [1, 2, 3, 4]
+        data = []
+        users = User.objects.all()
+        for i in quarter:
+            data.append(users.filter(last_login__quarter=i).count())
+        return {
+            "labels": quarter,
+            "data": data
+        }
+
+    def by_user_year():
+        users = User.objects.all()
+        start_year = users.first().last_login.year
+        end_year = timezone.now().year
+        data = []
+        years = []
+
+        for year in range(start_year, end_year + 1):
+            data.append(users.filter(last_login__year=year).count())
+            years.append(year)
+
+        return {
+            "labels": years,
+            "data": data
+        }
+
+    def by_post_month():
+        month = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        data = []
+        posts = Post.objects.all()
+        for i in month:
+            data.append(posts.filter(created_at__month=i).count())
+
+        return {
+            "labels": month,
+            "data": data
+        }
+
+    def by_post_quarter():
+        quarter = [1, 2, 3, 4]
+        data = []
+        posts = Post.objects.all()
+        for i in quarter:
+            data.append(posts.filter(created_at__quarter=i).count())
+        return {
+            "labels": quarter,
+            "data": data
+        }
+
+    def by_post_year():
+        posts = Post.objects.all()
+        start_year = posts.first().created_at.year
+        end_year = timezone.now().year
+        data = []
+        years = []
+
+        for year in range(start_year, end_year + 1):
+            data.append(posts.filter(created_at__year=year).count())
+            years.append(year)
+
+        return {
+            "labels": years,
+            "data": data
+        }
+
+    def by_accommodation_month():
+        month = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        data = []
+        accommodation = Accommodation.objects.all()
+        for i in month:
+            data.append(accommodation.filter(created_at__month=i).count())
+
+        return {
+            "labels": month,
+            "data": data
+        }
+
+    def by_accommodation_quarter():
+        quarter = [1, 2, 3, 4]
+        data = []
+        accommodation = Accommodation.objects.all()
+        for i in quarter:
+            data.append(accommodation.filter(created_at__quarter=i).count())
+        return {
+            "labels": quarter,
+            "data": data
+        }
+
+    def by_accommodation_year():
+        accommodation = Accommodation.objects.all()
+        start_year = accommodation.first().created_at.year
+        end_year = timezone.now().year
+        data = []
+        years = []
+
+        for year in range(start_year, end_year + 1):
+            data.append(accommodation.filter(created_at__year=year).count())
+            years.append(year)
+
+        return {
+            "labels": years,
+            "data": data
+        }
+
+
+    return render(request, "chart.html", {
+        'by_user_month': by_user_month,
+        'by_user_quarter': by_user_quarter,
+        'by_user_year': by_user_year,
+        'by_post_month': by_post_month,
+        'by_post_quarter': by_post_quarter,
+        'by_post_year': by_post_year,
+        'by_accommodation_month': by_accommodation_month,
+        'by_accommodation_quarter': by_accommodation_quarter,
+        'by_accommodation_year': by_accommodation_year,
+
+    })
+

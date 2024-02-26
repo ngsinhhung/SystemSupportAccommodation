@@ -11,5 +11,6 @@ router.register('accommodation/comment', CommentAccommodationViewSet, basename='
 router.register('notification', NotificationsViewSet, basename='notification')
 
 urlpatterns = [
-    path('', include(router.urls))
+    path('', include(router.urls)),
+    path('chart/', view_chart, name='admin')
 ]

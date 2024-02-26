@@ -1,0 +1,270 @@
+{% extends 'admin/base_site.html' %}
+{% block content %}
+
+    {% if request.user.is_authenticated and request.user.is_staff %}
+        <!-- Hiển thị nội dung chỉ cho admin -->
+    <h1>Chào mừng bạn, {{ request.user }}</h1>
+    <div>
+        <div>
+            <select name="type" id="type" onchange="handerSelectChange()">
+                <option value="month">Tháng (month)</option>
+                <option value="quarter">Quý (quarter)</option>
+                <option value="year">Năm (year)</option>
+            </select>
+            <select name="data" id="data" onchange="handerSelectChange()">
+                <option value="user">User</option>
+                <option value="post">Post</option>
+                <option value="accommodation">Accommodation</option>
+            </select>
+        </div>
+        <div style="width: 60%">
+            <canvas id="myChart"></canvas>
+        </div>
+    </div>
+    {% elif not request.user.is_authenticated %}
+        <script>
+            window.location.href = "{% url 'admin:login' %}";
+        </script>
+    {% elif not request.user.is_staff %}
+        <h1>{{ request.user }} is not Admin</h1>
+    {% endif %}
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const ctx = document.getElementById('myChart')
+
+    myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: {{ by_user_month.labels }},
+          datasets: [{
+            label: 'user',
+            data: {{ by_user_month.data }},
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+        });
+
+
+    function handerSelectChange() {
+        var dataElement = document.getElementById("data");
+        var dataValue = dataElement.value;
+
+        var typeElement = document.getElementById("type");
+        var selectedTypeValue = typeElement.value;
+
+        if (selectedTypeValue === "month" && dataValue === "user"){
+            myChart.destroy()
+            myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: {{ by_user_month.labels }},
+              datasets: [{
+                label: 'user',
+                data: {{ by_user_month.data }},
+                borderWidth: 1
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+            });
+
+        }
+
+        if (selectedTypeValue === "quarter" && dataValue === "user"){
+            
+            myChart.destroy()
+            myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: {{ by_user_quarter.labels }},
+              datasets: [{
+                label: 'user',
+                data: {{ by_user_quarter.data }},
+                borderWidth: 1
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+            });
+        }
+
+        if (selectedTypeValue === "year" && dataValue === "user"){
+
+            myChart.destroy()
+            myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: {{ by_user_year.labels }},
+              datasets: [{
+                label: 'user',
+                data: {{ by_user_year.data }},
+                borderWidth: 1
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+            });
+        }
+
+        if (selectedTypeValue === "month" && dataValue === "post"){
+            myChart.destroy()
+            myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: {{ by_post_month.labels }},
+              datasets: [{
+                label: 'post',
+                data: {{ by_post_month.data }},
+                borderWidth: 1
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+            });
+        }
+
+        if (selectedTypeValue === "quarter" && dataValue === "post"){
+            myChart.destroy()
+            myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: {{ by_post_quarter.labels }},
+              datasets: [{
+                label: 'post',
+                data: {{ by_post_quarter.data }},
+                borderWidth: 1
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+            });
+        }
+
+        if (selectedTypeValue === "year" && dataValue === "post"){
+
+            myChart.destroy()
+            myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: {{ by_post_year.labels }},
+              datasets: [{
+                label: 'post',
+                data: {{ by_post_year.data }},
+                borderWidth: 1
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+            });
+        }
+
+        if (selectedTypeValue === "month" && dataValue === "accommodation"){
+            myChart.destroy()
+            myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: {{ by_accommodation_month.labels }},
+              datasets: [{
+                label: 'accommodation',
+                data: {{ by_accommodation_month.data }},
+                borderWidth: 1
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+            });
+        }
+
+        if (selectedTypeValue === "quarter" && dataValue === "accommodation"){
+            myChart.destroy()
+            myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: {{ by_accommodation_quarter.labels }},
+              datasets: [{
+                label: 'accommodation',
+                data: {{ by_accommodation_quarter.data }},
+                borderWidth: 1
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+            });
+        }
+
+        if (selectedTypeValue === "year" && dataValue === "accommodation"){
+
+            myChart.destroy()
+            myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: {{ by_accommodation_year.labels }},
+              datasets: [{
+                label: 'accommodation',
+                data: {{ by_accommodation_year.data }},
+                borderWidth: 1
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+            });
+        }
+    }
+</script>
+{% endblock %}
