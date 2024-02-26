@@ -78,7 +78,7 @@ class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIVie
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['PATCH'], detail=True, url_path='update')
-    def update_user(self, request,pk):
+    def update_user(self, request, pk):
         try:
             data = request.data
             user_instance = self.get_object()

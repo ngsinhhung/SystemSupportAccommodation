@@ -10,6 +10,7 @@ class BaseModel(models.Model):
 class User(AbstractUser):
     avatar_user = CloudinaryField('avatar', null=True, blank=True)
     phone = models.CharField(max_length=15, null=True, blank=True)
+    last_login = models.DateTimeField(null=True, blank=True)
     class Role(models.TextChoices):
         TENANT = "TENANT", ('Người thuê')
         ADMIN = 'ADMIN', ('Quản trị viên')
