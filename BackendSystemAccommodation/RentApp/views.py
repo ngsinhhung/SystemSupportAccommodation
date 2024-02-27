@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from .pagination import CustomPageNumberPagination
 from .utils import sendEmail
 
+from RentApp import perms
 from RentApp.models import User, Accommodation, ImageAccommodation, Post, CommentPost, Follow, Notification, ImagePost, \
     CommentAccommodation
 from RentApp.serializers import UserSerializer, AccommodationSerializer, \
@@ -23,12 +24,14 @@ from RentApp.serializers import UserSerializer, AccommodationSerializer, \
 class UserViewSet(viewsets.ViewSet, generics.ListAPIView, generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny, ]
+    permission_classes = [permissions.IsAuthenticated, ]
 
-    # def get_permissions(self):
-    #     if self.action in ['detail_user', 'update_user']:
-    #         return [permissions.IsAuthenticated()]
-    #     return self.permission_classes
+    def get_permissions(self):
+        if self.action in ['update_user', 'destroy']:
+            permission_classes = [perms.OwnerAuthenticated]
+        if self.action in ['register_user', 'detail_user', 'list']:
+            permission_classes = [permissions.AllowAny]
+        return [permission() for permission in permission_classes]
 
     @action(methods=['POST'], detail=False, url_path='register')
     def register_user(self, request):
@@ -164,8 +167,15 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIVi
     queryset = Post.objects.all()
     pagination_class = CustomPageNumberPagination
     serializer_class = PostSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
+
+    def get_permissions(self):
+        if self.action in ['destroy',]:
+            permission_classes = [perms.OwnerAuthenticated]
+        if self.action in ['list', 'retrieve', 'list']:
+            permission_classes = [permissions.AllowAny]
+        return [permission() for permission in permission_classes]
 
     @action(methods=['POST'], detail=False, url_path='create')
     def create_post(self, request):
@@ -266,7 +276,14 @@ class PostViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIVi
 class CommentPostViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = CommentPost.objects.filter(parent_comment__isnull=True)
     serializer_class = CommentPostSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['edit_comment', 'delete_comment']:
+            permission_classes = [perms.OwnerAuthenticated]
+        if self.action in ['list']:
+            permission_classes = [permissions.AllowAny]
+        return [permission() for permission in permission_classes]
 
     @action(methods=['POST'], detail=True, url_path='reply')
     def add_reply_comment(self, request, pk):
@@ -318,7 +335,7 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
     queryset = Accommodation.objects.all().order_by('-id')
     serializer_class = AccommodationSerializer
     pagination_class = CustomPageNumberPagination
-    permission_classes = [permissions.AllowAny, ]
+    permission_classes = [permissions.IsAuthenticated, ]
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
@@ -442,7 +459,12 @@ class AccommodationViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Dest
 class CommentAccommodationViewSet(viewsets.ViewSet):
     queryset = CommentAccommodation.objects.filter(parent_comment__isnull=True)
     serializer_class = CommentAccommodationSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['delete_comment',]:
+            permission_classes = [perms.OwnerAuthenticated]
+        return [permission() for permission in permission_classes]
 
     @action(methods=['POST'], detail=True, url_path='reply')
     def add_reply_comment_accommodation(self, request, pk):
@@ -477,7 +499,7 @@ class CommentAccommodationViewSet(viewsets.ViewSet):
 class NotificationsViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
-    permission_classes = [permissions.AllowAny, ]
+    permission_classes = [permissions.IsAuthenticated, ]
 
     def get_queryset(self):
         try:
@@ -489,7 +511,7 @@ class NotificationsViewSet(viewsets.ViewSet, generics.ListAPIView):
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def create_notification_follow(self, notification, sender, user_receive):
+    def create_notification_follow(notification, sender, user_receive):
         try:
             Notification.objects.create(notice=notification, sender=sender, recipient=user_receive)
             sendEmail(notification, recipients=[user_receive.email])
@@ -498,7 +520,7 @@ class NotificationsViewSet(viewsets.ViewSet, generics.ListAPIView):
             print(f"Error: {str(e)}")
             return Response({"Error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def create_notification_post_accommodation(self, notification, user_send):
+    def create_notification_post_accommodation(notification, user_send):
         try:
             user_send = User.objects.get(username=user_send)
             user_follow_user_send = Follow.objects.filter(follow_id=user_send.id)
