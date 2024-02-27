@@ -99,6 +99,7 @@ class PostSerializer(ModelSerializer):
 
 class CommentPostSerializer(ModelSerializer):
     reply_comment = RecursiveField(many=True)
+    user_comment = UserSerializer(read_only=True)
     class Meta:
         model = CommentPost
         fields = ['id', 'user_comment', 'post', 'text', 'parent_comment', 'created_at', 'reply_comment']
@@ -106,6 +107,7 @@ class CommentPostSerializer(ModelSerializer):
 
 class CommentAccommodationSerializer(ModelSerializer):
     reply_comment = RecursiveField(many=True)
+    user_comment = UserSerializer(read_only=True)
     class Meta:
         model = CommentAccommodation
         fields = ['id', 'user_comment', 'accommodation', 'text', 'parent_comment', 'created_at', 'reply_comment']
